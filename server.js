@@ -150,10 +150,16 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✓ Database connection established successfully');
 
-    // Sync database (in development)
-    if (config.environment === 'development') {
+    // Optional DB sync controlled by env: DB_SYNC=alter|force|none (default: none)
+    const dbSyncMode = (process.env.DB_SYNC || 'none').toLowerCase();
+    if (dbSyncMode === 'alter') {
       await sequelize.sync({ alter: true });
-      console.log('✓ Database synchronized');
+      console.log('✓ Database synchronized (alter)');
+    } else if (dbSyncMode === 'force') {
+      await sequelize.sync({ force: true });
+      console.log('✓ Database synchronized (force)');
+    } else {
+      console.log('↷ Skipping automatic DB sync (DB_SYNC=none)');
     }
 
     // Start server

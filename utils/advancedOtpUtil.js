@@ -18,6 +18,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const { OTP } = require('../models');
+const createSingleSMSUtil = require('./sendSingleSMSUtil');
 const { normalizeEthiopianPhone } = require('./phoneUtils');
 const { Op } = require('sequelize');
 
@@ -117,63 +118,36 @@ function createAdvancedOtpUtil(opts = {}) {
       attempts: 0
     });
 
-    // Send OTP via SMS gateway using GeezSMS
-    const baseUrl = process.env.GEEZSMS_BASE_URL || 'https://api.geezsms.com/api/v1';
-    const message = `Your ${companyName} verification code is: ${otp}. Valid for ${Math.floor(otpExpirationSeconds / 60)} minutes. Do not share this code.`;
-    
+    // Send OTP via SMS using working project's util style
+    const message = `Your ${companyName} OTP is ${otp}. It expires in ${Math.floor(otpExpirationSeconds/60)} minutes.`;
+    let sent = false;
+    let providerInfo = undefined;
+    let sentPayload = undefined;
     try {
-      console.log('Sending OTP to GeezSMS:', { 
-        url: `${baseUrl}/sms/send`,
-        phone: phone,
-        token: token ? `${token.substring(0, 10)}...` : 'MISSING',
-        messageLength: message.length
-      });
-
-      const senderId = process.env.SMS_SENDER_ID;
-      const payload = {
-        token: token,
-        phone: phone,
-        msg: message
-      };
-      
-      // Add sender ID if configured
-      if (senderId) {
-        payload.sender = senderId;
+      const sms = await createSingleSMSUtil({ token });
+      const smsResult = await sms.sendSingleSMS({ phone, msg: message });
+      providerInfo = smsResult?.data;
+      // mark sent=true when provider reports no error
+      sent = !!(providerInfo && providerInfo.error === false);
+      // capture payload minimally (phone only)
+      sentPayload = { phone };
+      if (providerInfo) {
+        try { console.log('GeezSMS Full Response:', JSON.stringify(providerInfo, null, 2)); } catch {}
       }
-
-      const response = await axios.post(`${baseUrl}/sms/send`, payload);
-
-      console.log('GeezSMS Full Response:', JSON.stringify(response.data, null, 2));
-
-      if (response.data.error === false) {
-        console.log(`✓ OTP sent to ${phone} via SMS (GeezSMS) - Message ID: ${response.data.data?.api_log_id}`);
-      } else {
-        console.error('GeezSMS returned error:', response.data);
-        throw new Error(response.data.msg || 'SMS sending failed');
-      }
-    } catch (smsError) {
-      if (smsError.response) {
-        console.error('GeezSMS API Error Response:', JSON.stringify(smsError.response.data, null, 2));
-        console.error('GeezSMS API Status:', smsError.response.status);
-      } else {
-        console.error('GeezSMS Network Error:', smsError.message);
-      }
-      throw new Error('Failed to send OTP via SMS: ' + (smsError.response?.data?.msg || smsError.message));
+    } catch (e) {
+      console.log(`[OTP SMS ERROR] phone=${phone} err=${e && e.message}`);
     }
 
-    // Log OTP to console in development
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-      console.log(`[DEV] OTP Code for ${phone}: ${otp} (expires in ${otpExpirationSeconds}s)`);
-    }
-
-    return {
+      const result = {
       success: true,
-      message: 'OTP sent successfully',
+        message: 'OTP sent successfully',
       phone,
-      expiresIn: otpExpirationSeconds,
-      // Only in development (NODE_ENV not set or explicitly 'development')
-      ...((process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) && { otp })
-    };
+        expiresIn: otpExpirationSeconds,
+        sent
+      };
+      if (providerInfo) result.providerInfo = providerInfo;
+      if (sentPayload) result.sentPayload = sentPayload;
+      return result;
   }
 
   /**

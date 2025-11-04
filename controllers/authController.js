@@ -1,7 +1,7 @@
 const { User, Profile } = require('../models');
 const { isValidPhone, normalizePhone } = require('../utils/phoneUtils');
 const bcrypt = require('bcryptjs');
-const createAdvancedOtpUtil = require('../utils/otpUtils');
+const createAdvancedOtpUtil = require('../utils/advancedOtpUtil');
 const { signAccessToken, signRefreshToken, verify } = require('../utils/jwtUtils');
 const Sequelize = require('sequelize');
 const fs = require('fs');
@@ -11,14 +11,13 @@ const path = require('path');
 const otpUtil = createAdvancedOtpUtil({
   otpLength: Number(process.env.OTP_LENGTH) || 6,
   otpExpirationSeconds: Number(process.env.OTP_EXPIRATION_SECONDS) || 300,
-  maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS) || 3,
+  maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS) || 5,
   lockoutSeconds: Number(process.env.OTP_LOCKOUT_SECONDS) || 1800,
-  companyName: process.env.COMPANY_NAME || 'EthioConnect'
+  companyName: process.env.COMPANY_NAME || 'EthioConnect',
+  rateLimitSeconds: Number(process.env.OTP_REQUEST_COOLDOWN_SECONDS) || 30
 });
 
-class AuthController {
-
-  generateTokens(user) {
+function generateTokens(user) {
     const accessToken = signAccessToken(
       { id: user.id, username: user.username, email: user.email, phone: user.phone, authProvider: user.authProvider }
     );
@@ -26,9 +25,9 @@ class AuthController {
     const refreshToken = signRefreshToken(user.id);
 
     return { accessToken, refreshToken };
-  }
+}
 
-  async register(req, res) {
+async function register(req, res) {
     try {
       const { username, email, phone, password, authProvider = 'password' } = req.body;
       if (!password) return res.status(400).json({ success: false, message: 'Password is required' });
@@ -56,7 +55,7 @@ class AuthController {
       const user = await User.create({ username: username || null, email: email || null, phone: normalizedPhone, passwordHash, authProvider, isVerified: false, status: 'active' });
       await Profile.create({ userId: user.id, fullName: null });
 
-      const tokens = this.generateTokens(user);
+      const tokens = generateTokens(user);
       const userData = user.toJSON();
       delete userData.passwordHash;
 
@@ -70,9 +69,9 @@ class AuthController {
       }
       res.status(400).json({ success: false, message: error.message || 'Registration failed' });
     }
-  }
+}
 
-  async login(req, res) {
+async function login(req, res) {
     try {
       const { email, password } = req.body;
       if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' });
@@ -85,7 +84,7 @@ class AuthController {
       if (!isPasswordValid) return res.status(401).json({ success: false, message: 'Invalid email or password' });
 
       await user.update({ lastLogin: new Date() });
-      const tokens = this.generateTokens(user);
+      const tokens = generateTokens(user);
       const userData = user.toJSON();
       delete userData.passwordHash;
 
@@ -95,9 +94,9 @@ class AuthController {
       console.error('Login error:', error);
       res.status(500).json({ success: false, message: 'Login failed' });
     }
-  }
+}
 
-  async loginWithToken(req, res) {
+async function loginWithToken(req, res) {
     try {
       const { phone, token } = req.body;
       const normalizedPhone = normalizePhone(phone);
@@ -123,7 +122,7 @@ class AuthController {
         return res.status(401).json({ success: false, message: 'Token does not belong to this user' });
       }
 
-      const tokens = this.generateTokens(user);
+      const tokens = generateTokens(user);
       console.log('Generated tokens:', tokens);
 
       const userData = user.toJSON();
@@ -135,9 +134,9 @@ class AuthController {
       console.error('Token login error:', error);
       res.status(500).json({ success: false, message: 'Token login failed' });
     }
-  }
+}
 
-  async refreshToken(req, res) {
+async function refreshToken(req, res) {
     try {
       const { refreshToken } = req.body;
       if (!refreshToken) return res.status(400).json({ success: false, message: 'Refresh token required' });
@@ -152,7 +151,7 @@ class AuthController {
       const user = await User.findByPk(payload.id);
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-      const tokens = this.generateTokens(user);
+      const tokens = generateTokens(user);
       const userData = user.toJSON();
       delete userData.passwordHash;
 
@@ -162,9 +161,9 @@ class AuthController {
       console.error('Refresh token error:', error);
       res.status(500).json({ success: false, message: 'Refresh token failed' });
     }
-  }
+}
 
-  async getCurrentUser(req, res) {
+async function getCurrentUser(req, res) {
     try {
       const user = await User.findByPk(req.user.id, { attributes: { exclude: ['passwordHash'] }, include: [{ model: Profile, as: 'profile' }] });
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -173,23 +172,13 @@ class AuthController {
       console.error('Get current user error:', error);
       res.status(500).json({ success: false, message: 'Failed to retrieve user' });
     }
-  }
+}
 
-  async checkUsername(req, res) {
-    try {
-      const { username } = req.params;
-      const user = await User.findOne({ where: { username } });
-      res.json({ success: true, available: !user });
-    } catch (error) {
-      console.error('Check username error:', error);
-      res.status(500).json({ success: false, message: 'Failed to check username' });
-    }
-  }
 
   /**
    * Search users
    */
-  async searchUsers(req, res) {
+async function searchUsers(req, res) {
     try {
       const { q, limit = 10, offset = 0 } = req.query;
       const users = await User.findAll({
@@ -216,11 +205,11 @@ class AuthController {
         error: error.message
       });
     }
-  }
+}
 
   // --- Added missing methods so userRoutes can bind to them ---
 
-  async getUserById(req, res) {
+async function getUserById(req, res) {
     try {
       const { userId } = req.params;
       const user = await User.findByPk(userId, {
@@ -233,9 +222,9 @@ class AuthController {
       console.error('Get user error:', error);
       res.status(500).json({ success: false, message: 'Failed to get user', error: error.message });
     }
-  }
+}
 
-  async updateUserStatus(req, res) {
+async function updateUserStatus(req, res) {
     try {
       const { userId } = req.params;
       const { status } = req.body;
@@ -258,9 +247,9 @@ class AuthController {
       console.error('Update user status error:', error);
       res.status(500).json({ success: false, message: 'Failed to update user status', error: error.message });
     }
-  }
+}
 
-  async getUserStats(req, res) {
+async function getUserStats(req, res) {
     try {
       const totalUsers = await User.count();
       const activeUsers = await User.count({ where: { status: 'active' } });
@@ -275,12 +264,12 @@ class AuthController {
       console.error('Get user stats error:', error);
       res.status(500).json({ success: false, message: 'Failed to get user statistics', error: error.message });
     }
-  }
+}
 
   /**
    * Request OTP — creates user if needed and delegates to otp util.
    */
-  async requestOTP(req, res) {
+async function requestOTP(req, res) {
     try {
       const { phone } = req.body;
       if (!phone) return res.status(400).json({ success: false, message: 'Phone number required' });
@@ -310,23 +299,24 @@ class AuthController {
         console.error('Failed to write SMS attempt log:', logErr);
       }
 
-      // Response: do not expose OTP code in production
-      const resp = { success: true, message: 'OTP generated', sent: !!otpResult.sent };
-      if ((process.env.NODE_ENV || '').toLowerCase() !== 'production') {
-        resp.providerInfo = otpResult.providerInfo || otpResult.providerInfo; // may be undefined
-      }
-
+      // Response aligned with OTP guide and SMS message
+      const resp = {
+        success: true,
+        message: 'OTP sent successfully',
+        phoneNumber: normalizedPhone,
+        expiresIn: otpResult.expiresIn || Number(process.env.OTP_EXPIRATION_SECONDS) || 300
+      };
       return res.status(200).json(resp);
     } catch (error) {
       console.error('Request OTP error:', error);
       return res.status(500).json({ success: false, message: error.message || 'Failed to send OTP' });
     }
-  }
+}
 
   /**
    * Verify OTP — delegate verification to otp util, update user and issue tokens.
    */
-  async verifyOTP(req, res) {
+async function verifyOTP(req, res) {
     try {
       const { phone, otp } = req.body;
       if (!phone || !otp) return res.status(400).json({ success: false, message: 'Phone and OTP required' });
@@ -336,7 +326,7 @@ class AuthController {
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
       // Verify via OTP util (throws on failure)
-      await otpUtil.verifyOtp({ referenceType: 'User', referenceId: user.id, token: otp });
+      await otpUtil.verifyOtp({ referenceType: 'User', referenceId: user.id, token: otp, phoneNumber: normalizedPhone });
 
       // Mark verified and update last login
       await user.update({ isVerified: true, lastLogin: new Date() });
@@ -344,10 +334,14 @@ class AuthController {
       const accessToken = signAccessToken({ id: user.id, username: user.username, email: user.email, phone: user.phone, authProvider: user.authProvider });
       const refreshToken = signRefreshToken(user.id);
 
+      // Put tokens in headers as requested
+      res.set('Authorization', `Bearer ${accessToken}`);
+      res.set('X-Refresh-Token', refreshToken);
+
       const userData = user.toJSON();
       delete userData.passwordHash;
 
-      res.status(200).json({ success: true, message: 'OTP verified, account activated', user: userData, accessToken, refreshToken });
+      res.status(200).json({ success: true, message: 'OTP verified, account activated', user: userData });
     } catch (error) {
       console.error('Verify OTP error:', error);
       const msg = error.message || 'Failed to verify OTP';
@@ -360,12 +354,12 @@ class AuthController {
       }
       return res.status(400).json({ success: false, message: msg });
     }
-  }
+}
 
   /**
    * Login with OTP (verify then sign-in)
    */
-  async loginWithOtp(req, res) {
+async function loginWithOtp(req, res) {
     try {
       const { phone, otp } = req.body;
       if (!phone || !otp) return res.status(400).json({ success: false, message: 'Phone and OTP required' });
@@ -375,7 +369,7 @@ class AuthController {
       if (!user) return res.status(404).json({ success: false, message: 'No account found' });
 
       // verify OTP
-      await otpUtil.verifyOtp({ referenceType: 'User', referenceId: user.id, token: otp });
+      await otpUtil.verifyOtp({ referenceType: 'User', referenceId: user.id, token: otp, phoneNumber: normalizedPhone });
 
       // update user
       await user.update({ isVerified: true, lastLogin: new Date() });
@@ -383,10 +377,13 @@ class AuthController {
       const accessToken = signAccessToken({ id: user.id, username: user.username, email: user.email, phone: user.phone, authProvider: user.authProvider });
       const refreshToken = signRefreshToken(user.id);
 
+      res.set('Authorization', `Bearer ${accessToken}`);
+      res.set('X-Refresh-Token', refreshToken);
+
       const userData = user.toJSON();
       delete userData.passwordHash;
 
-      res.json({ success: true, message: 'Login with OTP successful', user: userData, accessToken, refreshToken });
+      res.json({ success: true, message: 'Login with OTP successful', user: userData });
     } catch (error) {
       console.error('OTP Login error:', error);
       const msg = error.message || 'OTP login failed';
@@ -395,12 +392,12 @@ class AuthController {
       }
       return res.status(400).json({ success: false, message: msg });
     }
-  }
+}
 
   /**
    * Resend OTP — re-generate and send OTP for an existing user
    */
-  async resendOTP(req, res) {
+async function resendOTP(req, res) {
     try {
       const { phone } = req.body;
       if (!phone) return res.status(400).json({ success: false, message: 'Phone number required' });
@@ -423,19 +420,57 @@ class AuthController {
         console.error('Failed to write SMS resend log:', logErr);
       }
 
-      const resp = { success: true, message: 'OTP resent', sent: !!otpResult.sent };
-      if ((process.env.NODE_ENV || '').toLowerCase() !== 'production' && otpResult.providerInfo) {
-        resp.providerInfo = otpResult.providerInfo;
-        if (otpResult.sentPayload) resp.sentPayload = otpResult.sentPayload;
-      }
-
-      return res.status(200).json(resp);
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully',
+        phoneNumber: normalizedPhone,
+        expiresIn: otpResult.expiresIn || Number(process.env.OTP_EXPIRATION_SECONDS) || 300
+      });
     } catch (error) {
       console.error('Resend OTP error:', error);
       return res.status(500).json({ success: false, message: error.message || 'Failed to resend OTP' });
     }
-  }
-
 }
 
-module.exports = new AuthController();
+module.exports = {
+  generateTokens,
+  register,
+  login,
+  loginWithToken,
+  loginWithPhone: async function(req, res) {
+    try {
+      const { phone } = req.body;
+      if (!phone) return res.status(400).json({ success: false, message: 'Phone number required' });
+      if (!isValidPhone(phone)) return res.status(400).json({ success: false, message: 'Invalid phone number' });
+
+      const normalizedPhone = normalizePhone(phone);
+      const user = await User.findOne({ where: { phone: normalizedPhone } });
+      if (!user) return res.status(404).json({ success: false, message: 'No account found' });
+      if (!user.isVerified) return res.status(403).json({ success: false, message: 'Phone not verified' });
+
+      await user.update({ lastLogin: new Date() });
+      const accessToken = signAccessToken({ id: user.id, username: user.username, email: user.email, phone: user.phone, authProvider: user.authProvider });
+      const refreshToken = signRefreshToken(user.id);
+
+      res.set('Authorization', `Bearer ${accessToken}`);
+      res.set('X-Refresh-Token', refreshToken);
+
+      const userData = user.toJSON();
+      delete userData.passwordHash;
+      return res.json({ success: true, message: 'Login successful', user: userData });
+    } catch (error) {
+      console.error('Phone login error:', error);
+      return res.status(500).json({ success: false, message: 'Login failed' });
+    }
+  },
+  refreshToken,
+  getCurrentUser,
+  searchUsers,
+  getUserById,
+  updateUserStatus,
+  getUserStats,
+  requestOTP,
+  verifyOTP,
+  loginWithOtp,
+  resendOTP
+};

@@ -1,64 +1,85 @@
 {
   "info": {
-    "name": "Ethioconnect UserService",
-    "description": "Postman collection for the Ethioconnect_userService API (Auth + Users). Update {{baseUrl}} and {{token}} in your environment.",
+    "name": "Ethioconnect UserService - Full API (Updated)",
+    "description": "Complete Postman collection for Ethioconnect_userService. Update {{baseUrl}} and {{token}} in environment.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "ethio-user-service-collection"
+    "_postman_id": "ethio-user-service-complete"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "baseUrl", "value": "http://localhost:4000" },
     { "key": "token", "value": "" },
+    { "key": "refreshToken", "value": "" },
     { "key": "testUserId", "value": "" }
   ],
   "item": [
     {
       "name": "Auth",
-      "description": "Authentication related endpoints",
       "item": [
         {
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+251912345678\",\n  \"password\": \"secret123\"\n}"
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"0912345678\",\n  \"password\": \"secret123\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["api","v1","auth","register"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] }
+          }
         },
         {
           "name": "Login (email/password)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"secret123\"\n}"
-            },
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
-          },
-          "response": []
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"secret123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251912345678\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/otp/request", "host": ["{{baseUrl}}"], "path": ["api","auth","otp","request"] }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251912345678\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/otp/resend", "host": ["{{baseUrl}}"], "path": ["api","auth","otp","resend"] }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251912345678\",\n  \"otp\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/otp/verify", "host": ["{{baseUrl}}"], "path": ["api","auth","otp","verify"] }
+          }
+        },
+        {
+          "name": "Login with OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251912345678\",\n  \"otp\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/otp/login", "host": ["{{baseUrl}}"], "path": ["api","auth","otp","login"] }
+          }
         },
         {
           "name": "Token Login (phone + token)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone\": \"+251912345678\",\n  \"token\": \"<token-from-other-system>\"\n}"
-            },
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/token-login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","token-login"] }
-          },
-          "response": []
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251912345678\",\n  \"token\": \"<external-token>\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/token-login", "host": ["{{baseUrl}}"], "path": ["api","auth","token-login"] }
+          }
         },
         {
           "name": "Refresh Token",
@@ -66,9 +87,8 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh-token"] }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api","auth","refresh-token"] }
+          }
         },
         {
           "name": "Get Current User (me)",
@@ -78,24 +98,49 @@
               { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          }
         },
         {
           "name": "Check Username Availability",
           "request": {
             "method": "GET",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/check-username/johndoe", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","check-username","johndoe"] }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/auth/check-username/johndoe", "host": ["{{baseUrl}}"], "path": ["api","auth","check-username","johndoe"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profiles",
+      "item": [
+        {
+          "name": "Update Profile (PUT /api/profiles)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"bio\": \"Sample bio\",\n  \"other\": {}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/profiles", "host": ["{{baseUrl}}"], "path": ["api","profiles"] }
+          }
+        },
+        {
+          "name": "Get Profile by User ID (GET /api/profiles/:userId)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/profiles/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api","profiles","{{testUserId}}"] }
+          }
         }
       ]
     },
     {
       "name": "Users",
-      "description": "User management endpoints",
       "item": [
         {
           "name": "Search Users",
@@ -112,8 +157,7 @@
                 { "key": "offset", "value": "0" }
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Get User By ID",
@@ -124,8 +168,7 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": { "raw": "{{baseUrl}}/api/v1/users/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{testUserId}}"] }
-          },
-          "response": []
+          }
         },
         {
           "name": "Update User Status (admin)",
@@ -135,13 +178,9 @@
               { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"active\"  // allowed: active, inactive, suspended\n}"
-            },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/v1/users/{{testUserId}}/status", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{testUserId}}","status"] }
-          },
-          "response": []
+          }
         },
         {
           "name": "Users Stats Summary (admin)",
@@ -152,8 +191,51 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": { "raw": "{{baseUrl}}/api/v1/users/stats/summary", "host": ["{{baseUrl}}"], "path": ["api","v1","users","stats","summary"] }
-          },
-          "response": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List SMS Attempts (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/admin/sms-attempts?limit=50", "host": ["{{baseUrl}}"], "path": ["api","auth","admin","sms-attempts"], "query": [{ "key": "limit", "value": "50" }] }
+          }
+        },
+        {
+          "name": "Resend SMS Attempt (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"index\": 0\n  // or: \"api_log_id\": 46266057\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/admin/resend", "host": ["{{baseUrl}}"], "path": ["api","auth","admin","resend"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debug",
+      "item": [
+        {
+          "name": "My SMS Attempts (me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/debug/my-sms-attempts?limit=20", "host": ["{{baseUrl}}"], "path": ["api","auth","debug","my-sms-attempts"], "query": [{ "key": "limit", "value": "20" }] }
+          }
         }
       ]
     }
