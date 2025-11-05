@@ -18,6 +18,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const xss = require('xss-clean');
+
+// Import logger
+const logger = require('./config/logger');
 
 // Import models
 const { sequelize } = require('./models');
@@ -26,11 +30,7 @@ const { sequelize } = require('./models');
 const authMiddleware = require('./middleware/auth');
 
 // Import routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const verificationRoutes = require('./routes/verificationRoutes');
+const routes = require('./routes');
 
 // ============================================================================
 // CONFIGURATION
@@ -51,7 +51,8 @@ const config = {
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet()); // Set security HTTP headers
+app.use(xss()); // Sanitize request data against XSS
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || config.allowedOrigins.includes(origin)) {
@@ -75,12 +76,19 @@ app.use('/api/', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging middleware
-if (config.environment === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+// HTTP request logging with Winston
+app.use(morgan('combined', { stream: logger.stream }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info('Incoming request', {
+    method: req.method,
+    path: req.path,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
+  next();
+});
 
 // ============================================================================
 // HEALTH CHECK ENDPOINT
@@ -110,11 +118,7 @@ app.get('/health', async (req, res) => {
 // API ROUTES
 // ============================================================================
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/profiles', profileRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/verifications', verificationRoutes);
+app.use('/api', routes);
 
 // ============================================================================
 // ERROR HANDLING
@@ -131,7 +135,12 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  logger.error('Global error handler', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method
+  });
   
   res.status(err.status || 500).json({
     success: false,
@@ -148,44 +157,58 @@ const startServer = async () => {
   try {
     // Test database connection
     await sequelize.authenticate();
-    console.log('✓ Database connection established successfully');
+    logger.info('Database connection established successfully');
 
     // Optional DB sync controlled by env: DB_SYNC=alter|force|none (default: none)
     const dbSyncMode = (process.env.DB_SYNC || 'none').toLowerCase();
     if (dbSyncMode === 'alter') {
       await sequelize.sync({ alter: true });
-      console.log('✓ Database synchronized (alter)');
+      logger.info('Database synchronized (alter)');
     } else if (dbSyncMode === 'force') {
       await sequelize.sync({ force: true });
-      console.log('✓ Database synchronized (force)');
+      logger.info('Database synchronized (force)');
     } else {
-      console.log('↷ Skipping automatic DB sync (DB_SYNC=none)');
+      logger.info('Skipping automatic DB sync (DB_SYNC=none)');
     }
 
-    // Start server
-    app.listen(config.port, () => {
-      console.log('═══════════════════════════════════════════════════');
-      console.log(`🚀 EthioConnect User Service`);
-      console.log(`📡 Server running on port ${config.port}`);
-      console.log(`🌍 Environment: ${config.environment}`);
-      console.log(`🔗 Health check: http://localhost:${config.port}/health`);
-      console.log('═══════════════════════════════════════════════════');
-    });
+    // Start server only if not in LiteSpeed/OpenLiteSpeed environment
+    // LiteSpeed handles the listening automatically
+    const isLiteSpeed = typeof process.env.LSWS_EDITION !== 'undefined';
+    
+    if (!isLiteSpeed && require.main === module) {
+      app.listen(config.port, () => {
+        logger.info('═══════════════════════════════════════════════════');
+        logger.info(`🚀 EthioConnect User Service`);
+        logger.info(`📡 Server running on port ${config.port}`);
+        logger.info(`🌍 Environment: ${config.environment}`);
+        logger.info(`🔗 Health check: http://localhost:${config.port}/health`);
+        logger.info('═══════════════════════════════════════════════════');
+      });
+    } else {
+      logger.info('═══════════════════════════════════════════════════');
+      logger.info(`🚀 EthioConnect User Service`);
+      logger.info(`📡 Running in LiteSpeed/OpenLiteSpeed mode`);
+      logger.info(`🌍 Environment: ${config.environment}`);
+      logger.info('═══════════════════════════════════════════════════');
+    }
   } catch (error) {
-    console.error('❌ Unable to start server:', error);
+    logger.error('Unable to start server', {
+      error: error.message,
+      stack: error.stack
+    });
     process.exit(1);
   }
 };
 
 // Handle graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+  logger.info('SIGTERM signal received: closing HTTP server');
   await sequelize.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT signal received: closing HTTP server');
+  logger.info('SIGINT signal received: closing HTTP server');
   await sequelize.close();
   process.exit(0);
 });

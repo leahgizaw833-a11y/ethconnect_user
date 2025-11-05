@@ -1,0 +1,734 @@
+{
+  "info": {
+    "name": "EthioConnect User Service",
+    "description": "Complete API collection for EthioConnect User Service - Updated with latest changes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "ethioconnect",
+    "version": "2.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check service health and database connection status"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Authentication",
+          "item": [
+            {
+              "name": "Register User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.refreshToken) {",
+                      "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                      "        pm.collectionVariables.set('userId', jsonData.data.user.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+251912345678\",\n  \"password\": \"SecurePass123\",\n  \"role\": \"employee\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "register"]
+                },
+                "description": "Register a new user with username (required), email (optional), phone (optional), password (required), and role (optional: employer, employee, doctor, user)"
+              },
+              "response": []
+            },
+            {
+              "name": "Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.refreshToken) {",
+                      "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                      "        pm.collectionVariables.set('userId', jsonData.data.user.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "login"]
+                },
+                "description": "Login with email and password"
+              },
+              "response": []
+            },
+            {
+              "name": "Refresh Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/refresh-token",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "refresh-token"]
+                },
+                "description": "Refresh access token using refresh token"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Current User",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "me"]
+                },
+                "description": "Get currently authenticated user information"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Admin Authentication",
+          "item": [
+            {
+              "name": "Admin Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.refreshToken) {",
+                      "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                      "        pm.collectionVariables.set('userId', jsonData.data.user.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ethioconnect.com\",\n  \"password\": \"Admin@123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/admin/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "admin", "login"]
+                },
+                "description": "Login as admin. Verifies user has admin role before allowing access. Returns user data with roles array."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Admin User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"newadmin\",\n  \"email\": \"newadmin@ethioconnect.com\",\n  \"password\": \"SecureAdmin123\",\n  \"phone\": \"+251911000001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/admin/create",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "admin", "create"]
+                },
+                "description": "Create a new admin user (admin only). Requires admin authentication. Username, email, and password are required. Phone is optional."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "OTP Authentication",
+          "item": [
+            {
+              "name": "Request OTP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+251912345678\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/otp/request",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "otp", "request"]
+                },
+                "description": "Request OTP for phone verification"
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.refreshToken) {",
+                      "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+251912345678\",\n  \"otp\": \"123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/otp/verify",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "otp", "verify"]
+                },
+                "description": "Verify OTP code. Returns tokens in response body.\n\nResponse format:\n{\n  \"success\": true,\n  \"message\": \"OTP verified successfully\",\n  \"data\": {\n    \"accessToken\": \"jwt_token\",\n    \"refreshToken\": \"refresh_token\",\n    \"user\": {\n      \"id\": 1,\n      \"phone\": \"+251912345678\",\n      \"name\": \"User Name\"\n    }\n  }\n}"
+              },
+              "response": []
+            },
+            {
+              "name": "Login with OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.accessToken) {",
+                      "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                      "    }",
+                      "    if (jsonData.data && jsonData.data.refreshToken) {",
+                      "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-refresh-token",
+                    "value": "{{refreshToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+251912345678\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/otp/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "otp", "login"]
+                },
+                "description": "Login using phone number with existing authentication tokens. No OTP required - user must already be authenticated.\n\nHeaders required:\n- Authorization: Bearer {accessToken}\n- x-refresh-token: {refreshToken}\n\nUse this after verifying OTP to refresh tokens.\n\nResponse format:\n{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"phone\": \"+251912345678\",\n      \"name\": \"User Name\"\n    },\n    \"accessToken\": \"new_jwt_token\",\n    \"refreshToken\": \"new_refresh_token\"\n  }\n}"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Profile Management",
+          "item": [
+            {
+              "name": "Get Current User Profile",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/profiles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "profiles"]
+                },
+                "description": "Get current authenticated user's profile"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Profile",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"John Doe\",\n  \"bio\": \"Software developer passionate about technology\",\n  \"profession\": \"Software Engineer\",\n  \"languages\": [\"en\", \"am\"],\n  \"gender\": \"male\",\n  \"age\": 28,\n  \"religion\": \"Christian\",\n  \"ethnicity\": \"Ethiopian\",\n  \"education\": \"Bachelor's Degree\",\n  \"interests\": [\"coding\", \"reading\", \"travel\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/profiles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "profiles"]
+                },
+                "description": "Update current user's profile information"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Roles",
+          "item": [
+            {
+              "name": "Get All Roles",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/roles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "roles"]
+                },
+                "description": "Get all available roles"
+              },
+              "response": []
+            },
+            {
+              "name": "Get User Roles",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/roles/user/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "roles", "user", "{{userId}}"]
+                },
+                "description": "Get all roles assigned to a specific user"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Verification",
+          "item": [
+            {
+              "name": "Submit Verification Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "document",
+                      "type": "file",
+                      "src": [],
+                      "description": "Upload document file (jpg, jpeg, png, pdf, doc, docx - max 10MB)"
+                    },
+                    {
+                      "key": "type",
+                      "value": "doctor_license",
+                      "type": "text",
+                      "description": "Verification type: kyc, doctor_license, teacher_cert, business_license, employer_cert, other. Role auto-assigned on approval: doctor_license→doctor, teacher_cert→teacher, business_license→employer, employer_cert→employer"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Medical license for Dr. John Doe",
+                      "type": "text",
+                      "description": "Optional notes about the verification"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifications",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifications"]
+                },
+                "description": "Submit a new verification request with document upload using multipart/form-data. File is required.\n\nVerification Types & Auto-Assigned Roles:\n- doctor_license → Assigns 'doctor' role on approval\n- teacher_cert → Assigns 'teacher' role on approval\n- business_license → Assigns 'employer' role on approval\n- employer_cert → Assigns 'employer' role on approval\n- kyc → No role assigned (identity verification only)\n- other → No role assigned\n\nAdmin approves/rejects verification, system automatically assigns role."
+              },
+              "response": []
+            },
+            {
+              "name": "Get My Verifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifications",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifications"]
+                },
+                "description": "Get current user's verification requests"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "User Management",
+          "item": [
+            {
+              "name": "Get All Users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "users"]
+                },
+                "description": "Get all users with userId and roleId (admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get User Statistics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/stats/summary",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "users", "stats", "summary"]
+                },
+                "description": "Get user statistics summary (admin only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Role Management",
+          "item": [
+            {
+              "name": "Create Role",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"moderator\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/roles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "roles"]
+                },
+                "description": "Create a new role (admin only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Verification Management",
+          "item": [
+            {
+              "name": "Get Pending Verifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifications/pending",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifications", "pending"]
+                },
+                "description": "Get all pending verification requests (admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Verification Status",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"approved\",\n  \"notes\": \"Document verified successfully\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifications/:verificationId",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifications", ":verificationId"],
+                  "variable": [
+                    {
+                      "key": "verificationId",
+                      "value": "1",
+                      "description": "Verification ID"
+                    }
+                  ]
+                },
+                "description": "Update verification status (admin only). Status: approved or rejected.\n\nWhen approved, automatically assigns role based on verification type:\n- doctor_license → doctor role\n- teacher_cert → teacher role\n- business_license → employer role\n- employer_cert → employer role\n- kyc → no role assigned\n\nRoles are assigned automatically - admins do NOT manually assign roles."
+              },
+              "response": []
+            },
+            {
+              "name": "Get User Verifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/verifications/user/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verifications", "user", "{{userId}}"]
+                },
+                "description": "Get all verification requests for a specific user (admin only)"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

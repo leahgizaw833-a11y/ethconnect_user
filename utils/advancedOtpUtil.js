@@ -140,11 +140,11 @@ function createAdvancedOtpUtil(opts = {}) {
 
       const result = {
       success: true,
-        message: 'OTP sent successfully',
+      message: 'OTP sent successfully',
       phone,
-        expiresIn: otpExpirationSeconds,
+      expiresIn: otpExpirationSeconds,
         sent
-      };
+    };
       if (providerInfo) result.providerInfo = providerInfo;
       if (sentPayload) result.sentPayload = sentPayload;
       return result;

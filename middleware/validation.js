@@ -17,4 +17,33 @@ function handleValidationErrors(req, res, next) {
 	}
 }
 
-module.exports = { handleValidationErrors };
+/**
+ * Joi validation middleware
+ * @param {Object} schema - Joi schema object
+ */
+function validateRequest(schema) {
+	return (req, res, next) => {
+		const { error } = schema.validate({
+			body: req.body,
+			query: req.query,
+			params: req.params
+		}, { abortEarly: false });
+
+		if (error) {
+			const errors = error.details.map(detail => ({
+				field: detail.path.join('.'),
+				message: detail.message
+			}));
+
+			return res.status(400).json({
+				success: false,
+				message: 'Validation failed',
+				errors
+			});
+		}
+
+		next();
+	};
+}
+
+module.exports = { handleValidationErrors, validateRequest };

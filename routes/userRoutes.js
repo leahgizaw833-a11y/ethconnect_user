@@ -6,28 +6,14 @@ const { requireRole } = require('../middleware/roles'); // Ensure requireRole is
 const router = express.Router();
 
 /**
- * @route   GET /api/v1/users/search
- * @desc    Search users
- * @access  Public
- */
-router.get('/search', authController.searchUsers.bind(authController));
-
-/**
- * @route   GET /api/v1/users/:userId
- * @desc    Get user by ID
- * @access  Private
- */
-router.get('/:userId', authenticateToken, authController.getUserById.bind(authController));
-
-/**
- * @route   PUT /api/v1/users/:userId/status
- * @desc    Update user status (admin only)
+ * @route   GET /api/v1/users
+ * @desc    Get all users with userId and roleId (admin only)
  * @access  Private (Admin)
  */
-router.put('/:userId/status',
+router.get('/',
   authenticateToken,
   requireRole('admin'),
-  authController.updateUserStatus.bind(authController)
+  authController.getAllUsers.bind(authController)
 );
 
 /**

@@ -29,6 +29,7 @@ const Profile = require('./profile')(sequelize);
 const Verification = require('./verification')(sequelize);
 const OTP = require('./otp')(sequelize);
 const RefreshToken = require('./refreshToken')(sequelize);
+// const Connection = require('./connection')(sequelize); // COMMENTED: Connection management not needed yet
 
 // Define associations
 const setupAssociations = () => {
@@ -60,6 +61,13 @@ const setupAssociations = () => {
   // User <-> RefreshToken (One-to-Many)
   User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' });
   RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+  // COMMENTED: Connection associations not needed yet
+  // User <-> Connection (Many-to-Many self-referential)
+  // User.hasMany(Connection, { foreignKey: 'requesterId', as: 'sentConnections' });
+  // User.hasMany(Connection, { foreignKey: 'receiverId', as: 'receivedConnections' });
+  // Connection.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
+  // Connection.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
 };
 
 // Setup associations
@@ -75,4 +83,5 @@ module.exports = {
   Verification,
   OTP,
   RefreshToken
+  // Connection // COMMENTED: Not needed yet
 };

@@ -9,7 +9,7 @@ module.exports = (sequelize) => {
     },
     username: {
       type: DataTypes.STRING(120),
-      allowNull: true,
+      allowNull: false,
       unique: true
     },
     email: {
@@ -28,7 +28,7 @@ module.exports = (sequelize) => {
     },
     passwordHash: {
       type: DataTypes.STRING(255),
-      allowNull: true
+      allowNull: false
     },
     authProvider: {
       type: DataTypes.ENUM('password', 'google', 'apple', 'phone'),
@@ -47,7 +47,12 @@ module.exports = (sequelize) => {
     }
   }, {
     tableName: 'users',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+      { unique: true, fields: ['username'] },
+      { unique: true, fields: ['email'] },
+      { unique: true, fields: ['phone'] }
+    ]
   });
 
   return User;

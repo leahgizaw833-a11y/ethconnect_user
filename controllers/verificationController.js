@@ -1,12 +1,30 @@
-const { Verification, User, Profile } = require('../models');
+const { Verification, User, Profile, Role, UserRole } = require('../models');
+const logger = require('../config/logger');
 
-class VerificationController {
-  /**
-   * Submit verification request
-   */
-  async submitVerification(req, res) {
+/**
+ * Submit verification request with file upload
+ */
+async function submitVerification(req, res) {
     try {
-      const { type, documentUrl, notes } = req.body;
+      const { type, notes } = req.body;
+      
+      logger.info('Submit verification request', {
+        userId: req.user.id,
+        type,
+        hasFile: !!req.file
+      });
+
+      // Check if file was uploaded
+      if (!req.file) {
+        logger.warn('Verification submission without file', { userId: req.user.id });
+        return res.status(400).json({
+          success: false,
+          message: 'Document file is required'
+        });
+      }
+
+      // Get document URL from uploaded file
+      const documentUrl = `/uploads/verifications/${req.file.filename}`;
 
       // Check if there's already a pending verification of this type
       const existingVerification = await Verification.findOne({
@@ -18,6 +36,10 @@ class VerificationController {
       });
 
       if (existingVerification) {
+        logger.warn('Duplicate verification submission', {
+          userId: req.user.id,
+          type
+        });
         return res.status(400).json({
           success: false,
           message: 'You already have a pending verification request of this type'
@@ -32,25 +54,35 @@ class VerificationController {
         status: 'pending'
       });
 
+      logger.info('Verification submitted successfully', {
+        verificationId: verification.id,
+        userId: req.user.id,
+        type
+      });
+
       res.status(201).json({
         success: true,
         message: 'Verification request submitted successfully',
         data: { verification }
       });
     } catch (error) {
-      console.error('Submit verification error:', error);
+      logger.error('Submit verification error', {
+        error: error.message,
+        stack: error.stack,
+        userId: req.user.id
+      });
       res.status(500).json({
         success: false,
         message: 'Failed to submit verification request',
         error: error.message
       });
     }
-  }
+}
 
-  /**
-   * Get current user's verification requests
-   */
-  async getMyVerifications(req, res) {
+/**
+ * Get current user's verification requests
+ */
+async function getMyVerifications(req, res) {
     try {
       const verifications = await Verification.findAll({
         where: { userId: req.user.id },
@@ -69,12 +101,12 @@ class VerificationController {
         error: error.message
       });
     }
-  }
+}
 
-  /**
-   * Get all pending verifications (admin only)
-   */
-  async getPendingVerifications(req, res) {
+/**
+ * Get all pending verifications (admin only)
+ */
+async function getPendingVerifications(req, res) {
     try {
       const verifications = await Verification.findAll({
         where: { status: 'pending' },
@@ -103,12 +135,12 @@ class VerificationController {
         error: error.message
       });
     }
-  }
+}
 
-  /**
-   * Update verification status (admin only)
-   */
-  async updateVerification(req, res) {
+/**
+ * Update verification status (admin only)
+ */
+async function updateVerification(req, res) {
     try {
       const { verificationId } = req.params;
       const { status, notes } = req.body;
@@ -129,7 +161,7 @@ class VerificationController {
         verifiedAt: new Date()
       });
 
-      // Update user's profile verification status if approved
+      // Update user's profile verification status and assign role if approved
       if (status === 'approved') {
         const profile = await Profile.findOne({
           where: { userId: verification.userId }
@@ -137,9 +169,21 @@ class VerificationController {
 
         if (profile) {
           let newVerificationStatus = 'kyc';
+          let roleToAssign = null;
           
-          if (['doctor_license', 'teacher_cert', 'business_license', 'employer_cert'].includes(verification.type)) {
+          // Determine verification status and role based on document type
+          if (verification.type === 'doctor_license') {
             newVerificationStatus = 'professional';
+            roleToAssign = 'doctor';
+          } else if (verification.type === 'teacher_cert') {
+            newVerificationStatus = 'professional';
+            roleToAssign = 'teacher';
+          } else if (verification.type === 'business_license') {
+            newVerificationStatus = 'professional';
+            roleToAssign = 'employer';
+          } else if (verification.type === 'employer_cert') {
+            newVerificationStatus = 'professional';
+            roleToAssign = 'employer';
           }
 
           // Check if user has both KYC and professional verification
@@ -164,6 +208,32 @@ class VerificationController {
           }
 
           await profile.update({ verificationStatus: newVerificationStatus });
+
+          // Automatically assign role based on verification type
+          if (roleToAssign) {
+            let role = await Role.findOne({ where: { name: roleToAssign } });
+            
+            // Create role if it doesn't exist
+            if (!role) {
+              role = await Role.create({ name: roleToAssign });
+            }
+
+            // Check if user already has this role
+            const existingUserRole = await UserRole.findOne({
+              where: {
+                userId: verification.userId,
+                roleId: role.id
+              }
+            });
+
+            // Assign role if not already assigned
+            if (!existingUserRole) {
+              await UserRole.create({
+                userId: verification.userId,
+                roleId: role.id
+              });
+            }
+          }
         }
       }
 
@@ -180,12 +250,12 @@ class VerificationController {
         error: error.message
       });
     }
-  }
+}
 
-  /**
-   * Get user's verifications (admin only)
-   */
-  async getUserVerifications(req, res) {
+/**
+ * Get user's verifications (admin only)
+ */
+async function getUserVerifications(req, res) {
     try {
       const { userId } = req.params;
 
@@ -206,7 +276,12 @@ class VerificationController {
         error: error.message
       });
     }
-  }
 }
 
-module.exports = new VerificationController();
+module.exports = {
+  submitVerification,
+  getMyVerifications,
+  getPendingVerifications,
+  updateVerification,
+  getUserVerifications
+};

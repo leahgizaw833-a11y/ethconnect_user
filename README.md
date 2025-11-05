@@ -4,6 +4,13 @@ A comprehensive microservice for user management, authentication, profiles, role
 
 ## 📚 Documentation
 
+### **Microservice Integration** 🔗
+- **[Microservice Docs](./microservice-docs/)** - Complete integration guide
+- **[Integration Guide](./microservice-docs/MICROSERVICE_INTEGRATION.md)** - Service-to-service communication
+- **[Workflow Guide](./microservice-docs/WORKFLOW_USER_PROFILE_ROLE_VERIFICATION.md)** - Complete user journey
+- **[Implementation Status](./microservice-docs/COMPLETED_IMPLEMENTATION.md)** - Features & security
+
+### **Development Guides** 🛠️
 - **[🚀 Quick Start](./docs/QUICKSTART_MYSQL.md)** - Get started in 5 minutes
 - **[📁 Project Structure](./docs/PROJECT_STRUCTURE.md)** - Complete file organization
 - **[🗄️ MySQL Setup Guide](./docs/MYSQL_SETUP.md)** - Complete MySQL setup with Sequelize CLI

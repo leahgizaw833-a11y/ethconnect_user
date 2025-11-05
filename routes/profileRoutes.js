@@ -6,13 +6,6 @@ const { authenticateToken } = require('../middleware/auth');
 const { handleValidationErrors } = require('../middleware/validation');
 
 /**
- * @route   GET /api/v1/profiles/:userId
- * @desc    Get user profile
- * @access  Public
- */
-router.get('/:userId', profileController.getProfileByUserId.bind(profileController));
-
-/**
  * @route   PUT /api/v1/profiles
  * @desc    Update current user's profile
  * @access  Private
@@ -32,7 +25,7 @@ router.put('/',
     body('interests').optional().isArray(),
     handleValidationErrors
   ],
-  profileController.updateProfile.bind(profileController)
+  profileController.updateProfile
 );
 
 /**
@@ -40,6 +33,6 @@ router.put('/',
  * @desc    Get current user's profile
  * @access  Private
  */
-router.get('/', authenticateToken, profileController.getCurrentUserProfile.bind(profileController));
+router.get('/', authenticateToken, profileController.getCurrentUserProfile);
 
 module.exports = router;

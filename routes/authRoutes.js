@@ -13,6 +13,7 @@ router.post('/register', [
   body('email').optional().isEmail(),
   body('phone').optional().custom(value => { if (value && !isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
   body('password').isLength({ min: 6 }),
+  body('role').optional().isIn(['employer', 'employee', 'doctor', 'user']).withMessage('Invalid role. Valid roles: employer, employee, doctor, user'),
   handleValidationErrors
 ], authController.register);
 
@@ -22,22 +23,11 @@ router.post('/login', [
   handleValidationErrors
 ], authController.login);
 
-// === OTP routes restored ===
+// === OTP routes (duplicates removed) ===
 router.post('/otp/request', [
   body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
   handleValidationErrors
 ], authController.requestOTP);
-
-// Aliases matching OTP guide docs
-router.post('/request-otp', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  handleValidationErrors
-], authController.requestOTP);
-
-router.post('/otp/resend', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  handleValidationErrors
-], authController.resendOTP); // new route
 
 router.post('/otp/verify', [
   body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
@@ -45,29 +35,15 @@ router.post('/otp/verify', [
   handleValidationErrors
 ], authController.verifyOTP);
 
-router.post('/verify-otp', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  body('otp').isLength({ min: 6, max: 6 }),
-  handleValidationErrors
-], authController.verifyOTP);
-
-router.post('/otp/login', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  body('otp').isLength({ min: 6, max: 6 }),
-  handleValidationErrors
-], authController.loginWithOtp);
-// Phone-number-only login (after verification), returns tokens via headers
-router.post('/phone-login', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  handleValidationErrors
-], authController.loginWithPhone);
+router.post('/otp/login', 
+  authenticateToken,
+  [
+    body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
+    handleValidationErrors
+  ], 
+  authController.loginWithOtp
+);
 // === end OTP routes ===
-
-router.post('/token-login', [
-  body('phone').custom(value => { if (!isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
-  body('token').notEmpty(),
-  handleValidationErrors
-], authController.loginWithToken);
 
 router.post('/refresh-token', [
   body('refreshToken').notEmpty(),
@@ -76,6 +52,32 @@ router.post('/refresh-token', [
 
 router.get('/me', authenticateToken, authController.getCurrentUser);
 
-// Admin and debug routes removed
+// === Admin routes ===
+router.post('/admin/login', [
+  body('email').isEmail(),
+  body('password').notEmpty(),
+  handleValidationErrors
+], authController.adminLogin);
+
+router.post('/admin/create', 
+  authenticateToken,
+  requireRole('admin'),
+  [
+    body('username').trim().isLength({ min: 3, max: 120 }),
+    body('email').isEmail(),
+    body('password').isLength({ min: 6 }),
+    body('phone').optional().custom(value => { if (value && !isValidPhone(value)) throw new Error('Invalid phone'); return true; }),
+    handleValidationErrors
+  ], 
+  authController.createAdmin
+);
+
+// Get user by ID (admin only)
+router.get('/user/:userId',
+  authenticateToken,
+  requireRole('admin'),
+  authController.getUserById
+);
+// === end Admin routes ===
 
 module.exports = router;
